@@ -2,3 +2,6 @@
 
 *.class
 *.log
+
+###Mill###
+out/
