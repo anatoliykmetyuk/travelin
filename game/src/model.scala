@@ -8,7 +8,7 @@ import Action._, Country._, Special._
 type Card = Action | Country | Special
 type Effect = Action
 
-class PlayedCountryCard(val countryCard: Card):
+class PlayedCountryCard(val playedCard: Card):
   val capturedCountries = ListBuffer.empty[Card]
   override def toString =
     val capturedSuffix =
@@ -60,15 +60,44 @@ class Game:
       |
       |Player2:
       |$player2""".stripMargin
+end Game
 
-  def setup(): Unit =
+enum GamePhase {
+  case
+    Setup,
+    FirstCardSelection,
+    AmbiguousFirstTurn,
+    Player1Turn, Player2Turn,
+}
+
+trait GameSetup:
+  this: Game =>
+
+  def setup(): Unit = action(Setup) {
     player1.hand ++= deck.pop(8)
     player2.hand ++= deck.pop(8)
     (deck.pop(3): @unchecked) match
       case one :: two :: three :: Nil =>
         commonCards = (one, two, three)
+    FirstCardSelection
+  }
 
-  def placeInitialCard(player: Player, id: Int): Unit =
+  def placeInitialCard(player: Player, id: Int): Unit = action(FirstCardSelection) {
     val card = player.hand.remove(id)
     player.countriesPlayed += PlayedCountryCard(card)
-end Game
+
+    if   player1.countriesPlayed.nonEmpty
+      && player2.countriesPlayed.nonEmpty
+    then
+      val p1Value = player1.countriesPlayed.head.playedCard.value
+      val p2Value = player2.countriesPlayed.head.playedCard.value
+           if p1Value < p2Value then Player1Turn
+      else if p1Value > p2Value then Player2Turn
+      else AmbiguousFirstTurn
+    else FirstCardSelection
+  }
+
+  def setTurn(phase: Player1Turn | Player2Turn): Unit = action(AmbiguousFirstTurn) {
+    phase
+  }
+end GameSetup
