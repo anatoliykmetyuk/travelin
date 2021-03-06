@@ -9,7 +9,7 @@ enum Action {
 }
 
 import Action._
-enum Country(value: Int, action: Action | Special) {
+enum Country(val value: Int, val action: Action | Special) {
   case CzechRepublic extends Country(3, ArrogantBackpacker)
   case Belgium extends Country(6, Imperialism)
 }

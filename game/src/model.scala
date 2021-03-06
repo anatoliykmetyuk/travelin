@@ -8,13 +8,13 @@ import Action._, Country._, Special._
 type Card = Action | Country | Special
 type Effect = Action
 
-class PlayedCountryCard(val playedCard: Card):
+class PlayedCountryCard(val playedCard: Country):
   val capturedCountries = ListBuffer.empty[Card]
   override def toString =
     val capturedSuffix =
       if capturedCountries.isEmpty then ""
       else s", captured: ${capturedCountries.mkString(", ")}"
-    s"${countryCard}${capturedSuffix}"
+    s"${playedCard}${capturedSuffix}"
 end PlayedCountryCard
 
 class Player:
@@ -29,7 +29,7 @@ class Player:
       |Extra Effects: ${extraEffects.mkString(", ")}""".stripMargin
 end Player
 
-class Game:
+class Game extends GameSetup with GameLifecycle:
   var deck: Stack[Card] =
     def loadOf[Card](c: Card): Stack[Card] =
       Stack.fill[Card](10)(c)
@@ -69,6 +69,19 @@ enum GamePhase {
     AmbiguousFirstTurn,
     Player1Turn, Player2Turn,
 }
+import GamePhase._
+
+trait GameLifecycle:
+  this: Game =>
+  private var phase: GamePhase = Setup
+
+  def action(requiredPhase: GamePhase)(task: => GamePhase) =
+    if phase != requiredPhase then
+      error(s"This action can only be done during the $requiredPhase of the game")  // TODO use Sourcecode to help trace method names
+    else phase = task
+
+  def error(text: String) = throw RuntimeException(text)
+end GameLifecycle
 
 trait GameSetup:
   this: Game =>
@@ -83,8 +96,11 @@ trait GameSetup:
   }
 
   def placeInitialCard(player: Player, id: Int): Unit = action(FirstCardSelection) {
-    val card = player.hand.remove(id)
-    player.countriesPlayed += PlayedCountryCard(card)
+    player.hand(id) match
+      case card: Country =>
+        player.countriesPlayed += PlayedCountryCard(card)
+        player.hand.remove(id)
+      case card => error(s"Initial card must be a country card! $card is not a country card.")
 
     if   player1.countriesPlayed.nonEmpty
       && player2.countriesPlayed.nonEmpty
@@ -97,7 +113,7 @@ trait GameSetup:
     else FirstCardSelection
   }
 
-  def setTurn(phase: Player1Turn | Player2Turn): Unit = action(AmbiguousFirstTurn) {
+  def setTurn(phase: Player1Turn.type | Player2Turn.type): Unit = action(AmbiguousFirstTurn) {
     phase
   }
 end GameSetup
