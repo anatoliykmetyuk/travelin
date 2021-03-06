@@ -1,4 +1,7 @@
 package game
 
 @main def Main =
-  println(newGame)
+  val game = new Game
+  println(game)
+  game.setup()
+  println(game)

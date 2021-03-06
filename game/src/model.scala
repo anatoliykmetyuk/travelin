@@ -1,63 +1,74 @@
 package game
 
 import scala.util.Random
+import scala.collection.mutable.{ Stack, ListBuffer }
 
-import Action._, Special._, Country._
+import Action._, Country._, Special._
 
-def newGame: Game =
-  val deck = DeckBuilder()
-  val p1Hand = deck.dealHand
-  val p2Hand = deck.dealHand
-  val commonCards = deck.dealCommon
-  val resultingDeck = deck.resulting
-  Game(
-    deck = resultingDeck,
-    commonCards = commonCards,
-    discard = Nil,
-    player1 = Player(p1Hand),
-    player2 = Player(p2Hand),
-  )
+type Card = Action | Country | Special
+type Effect = Action
 
-class DeckBuilder:
-  private var deck: Deck =
-    def loadOf[Card](c: Card): List[Card] =
-      List.fill[Card](10)(c)
+class PlayedCountryCard(val countryCard: Card):
+  val capturedCountries = ListBuffer.empty[Card]
+  override def toString =
+    val capturedSuffix =
+      if capturedCountries.isEmpty then ""
+      else s", captured: ${capturedCountries.mkString(", ")}"
+    s"${countryCard}${capturedSuffix}"
+end PlayedCountryCard
+
+class Player:
+  val hand = ListBuffer.empty[Card]
+  val countriesPlayed = ListBuffer.empty[PlayedCountryCard]
+  val extraEffects = ListBuffer.empty[Effect]
+
+  override def toString =
+    s"""Hand: ${hand.mkString(", ")}
+      |Played cards:
+      |${countriesPlayed.mkString("\n")}
+      |Extra Effects: ${extraEffects.mkString(", ")}""".stripMargin
+end Player
+
+class Game:
+  var deck: Stack[Card] =
+    def loadOf[Card](c: Card): Stack[Card] =
+      Stack.fill[Card](10)(c)
     val unshuffled =
       loadOf(Bus) ++
       loadOf(Train) ++
       loadOf(ArrogantBackpacker) ++
       loadOf(CzechRepublic)
-    Random.shuffle(unshuffled).asInstanceOf[Deck]
+    Random.shuffle(unshuffled).asInstanceOf[Stack[Card]]
   end deck
+  var commonCards: (Card, Card, Card) = null
+  val player1: Player = new Player
+  val player2: Player = new Player
+  var discard = Stack.empty[Card]
 
-  def take(n: Int): List[Card] =
-    val res = deck.take(n)
-    deck = deck.drop(n)
-    res
+  override def toString =
+    s"""=== Game ===
+      |Deck (first 10):
+      |${deck.take(10).mkString("\n")}
+      |
+      |Common cards = $commonCards
+      |Discard (first 10):
+      |${discard.take(10).mkString("\n")}
+      |
+      |=== Players ===
+      |Player1:
+      |$player1
+      |
+      |Player2:
+      |$player2""".stripMargin
 
-  def dealHand: Hand = take(8).asInstanceOf[Hand]
-  def dealCommon: CommonCards = (take(3): @unchecked) match
-    case c1 :: c2 :: c3 :: Nil => ((c1, c2, c3)).asInstanceOf[CommonCards]
-  def resulting: Deck = deck
-end DeckBuilder
+  def setup(): Unit =
+    player1.hand ++= deck.pop(8)
+    player2.hand ++= deck.pop(8)
+    (deck.pop(3): @unchecked) match
+      case one :: two :: three :: Nil =>
+        commonCards = (one, two, three)
 
-opaque type Card = Action | Country | Special
-type Deck = List[Card]
-opaque type Hand = List[Card]
-opaque type Effect = Action
-opaque type CommonCards = (Card, Card, Card)
-
-case class Player(
-  hand: Hand,
-  countriesPlayed: List[Country] = Nil,
-  capturedCountries: List[Country] = Nil,  // via Russian Gambit
-  extraEffects: List[Effect] = Nil,
-)
-
-case class Game(
-  deck: Deck,
-  commonCards: CommonCards,
-  discard: Deck,
-  player1: Player,
-  player2: Player,
-)
+  def placeInitialCard(player: Player, id: Int): Unit =
+    val card = player.hand.remove(id)
+    player.countriesPlayed += PlayedCountryCard(card)
+end Game
