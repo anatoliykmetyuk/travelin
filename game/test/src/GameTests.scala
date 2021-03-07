@@ -20,7 +20,5 @@ object GameTests extends TestSuite:
         assert(game.player1.countriesPlayed.isEmpty)
         assert(game.player1.extraEffects.isEmpty)
       }
-
-      test("placeInitialCard") { ??? }
     }
   }
