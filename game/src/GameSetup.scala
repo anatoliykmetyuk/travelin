@@ -1,6 +1,7 @@
 package game
 
 import GamePhase._
+import TurnPhase._
 
 trait GameSetup:
   this: Game =>
@@ -24,6 +25,7 @@ trait GameSetup:
     if   player1.countriesPlayed.nonEmpty
       && player2.countriesPlayed.nonEmpty
     then
+      turnPhase = Draw
       val p1Value = player1.countriesPlayed.head.playedCard.value
       val p2Value = player2.countriesPlayed.head.playedCard.value
            if p1Value < p2Value then Player1Turn
