@@ -1,4 +1,5 @@
 package game
+package logic
 
 import scala.util.Random
 import scala.collection.mutable.{ Stack, ListBuffer }

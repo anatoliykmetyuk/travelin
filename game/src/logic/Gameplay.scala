@@ -1,4 +1,5 @@
 package game
+package logic
 
 trait Gameplay:
   this: Game =>
@@ -7,17 +8,18 @@ trait Gameplay:
 
   // === Draw Phase ===
   def drawFromDeck() = turnAction(Draw) {
-    currentPlayer.hand ++= deck.pop(2)
+    dealFromDeck(currentPlayer, 2)
     Action
   }
 
   def drawCommon(id: Int) = turnAction(Draw) {
-    currentPlayer.hand :+= commonCards.toList(id)
+    dealFromCommonCards(currentPlayer, id)
+    populateCommonCards()
     Action
   }
 
   def drawDiscard() = turnAction(Draw) {
-    currentPlayer.hand :+= discard.pop(1)
+    dealFromDiscard(currentPlayer, 1)
   }
 
   // === Action Phase ===

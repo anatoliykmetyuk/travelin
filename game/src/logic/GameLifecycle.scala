@@ -1,4 +1,5 @@
 package game
+package logic
 
 trait GameLifecycle:
   this: Game =>
